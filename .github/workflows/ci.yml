@@ -1,0 +1,30 @@
+name: Verify MoonRainflow
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - name: Check and run the library
+        run: |
+          moon version --all
+          moon fmt --check
+          moon test --target wasm-gc --deny-warn
+          moon test --target js --deny-warn
+          moon run cmd/demo --target wasm-gc
+      - name: Check the streaming CLI
+        run: |
+          moon build --target js --release cmd/bridge --deny-warn
+          node --test scripts/cli.test.mjs
+      - name: Compare to the Python reference
+        run: |
+          python3 -m venv "$RUNNER_TEMP/rainflow-check"
+          "$RUNNER_TEMP/rainflow-check/bin/python" -m pip install rainflow==3.2.0
+          "$RUNNER_TEMP/rainflow-check/bin/python" scripts/check_reference.py

@@ -1,0 +1,11 @@
+import {
+  "Mr-Shi123/moonrainflow" @rain,
+}
+
+pkgtype(kind: "foreign_library")
+
+supported_targets = "js"
+
+options(
+  link: { "js": { "format": "esm" } },
+)

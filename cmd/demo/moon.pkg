@@ -1,0 +1,5 @@
+import {
+  "Mr-Shi123/moonrainflow" @rain,
+}
+
+pkgtype(kind: "executable")

@@ -1,0 +1,50 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Mr-Shi123/moonrainflow"
+
+// Values
+pub fn extract(ArrayView[Double]) -> Array[Cycle] raise RainError
+
+// Errors
+pub(all) suberror RainError {
+  InvalidSample(Int64)
+  ClosedCounter
+  IndexLimit
+  InvalidEdges(String)
+  CountLimit
+}
+pub fn RainError::output(Self, &Logger) -> Unit
+pub fn RainError::to_string(Self) -> String
+pub impl Show for RainError
+
+// Types and methods
+pub struct Counter {
+  // private fields
+}
+pub fn Counter::finish(Self) -> Array[Cycle]
+pub fn Counter::new() -> Self
+pub fn Counter::push(Self, Double) -> Array[Cycle] raise RainError
+pub fn Counter::push_chunk(Self, ArrayView[Double]) -> Array[Cycle] raise RainError
+
+#derive(Eq)
+pub struct Cycle {
+  start_index : Int64
+  end_index : Int64
+  range : Double
+  mean : Double
+  half_units : Int32
+}
+pub fn Cycle::equal(Self, Self) -> Bool
+pub fn Cycle::not_equal(Self, Self) -> Bool
+
+pub struct Spectrum {
+  // private fields
+}
+pub fn Spectrum::add(Self, Cycle) -> Unit raise RainError
+pub fn Spectrum::matrix(Self) -> Array[Array[Int64]]
+pub fn Spectrum::new(Array[Double], Array[Double]) -> Self raise RainError
+pub fn Spectrum::outside_units(Self) -> Int64
+pub fn Spectrum::total_units(Self) -> Int64
+
+// Type aliases
+
+// Traits

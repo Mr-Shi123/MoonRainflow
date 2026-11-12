@@ -97,6 +97,25 @@ test "valid extremes yield finite range and mean" {
 }
 
 ///|
+test "rounding at high dynamic range must not prematurely close a cycle" {
+  for sign in [-1.0, 1.0] {
+    let history = [0.0, sign * 1.0e20, sign, sign * 2.0e20]
+    let rows = @moonrainflow.extract(history)
+    assert_eq(rows.length(), 2)
+    assert_true(
+      rows[0].start_index == 1L &&
+      rows[0].end_index == 2L &&
+      rows[0].half_units == 2,
+    )
+    assert_true(
+      rows[1].start_index == 0L &&
+      rows[1].end_index == 3L &&
+      rows[1].half_units == 1,
+    )
+  }
+}
+
+///|
 test "every short ternary history conserves variation and traces source endpoints" {
   let mut combinations = 1
   for n in 0..<8 {

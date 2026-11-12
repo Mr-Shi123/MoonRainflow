@@ -86,7 +86,11 @@ fn Counter::reversal(self : Counter, point : Point, out : Array[Cycle]) -> Unit 
     let a = s[n - 3]
     let b = s[n - 2]
     let c = s[n - 1]
-    if (c.value - b.value).abs() < (b.value - a.value).abs() {
+    // Consecutive reversals alternate, so A and C are on the same side of B.
+    // Compare their positions directly: subtracting B can round two unequal
+    // ranges to the same Double and prematurely close a high-dynamic-range pair.
+    if (b.value > a.value && c.value > a.value) ||
+      (b.value < a.value && c.value < a.value) {
       break
     }
     if n == 3 {

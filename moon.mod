@@ -4,6 +4,8 @@ version = "0.1.0"
 
 readme = "README.md"
 
+repository = "https://github.com/Mr-Shi123/moonrainflow"
+
 license = "Apache-2.0"
 
 keywords = [ "rainflow", "load-spectrum", "signal-processing", "streaming" ]

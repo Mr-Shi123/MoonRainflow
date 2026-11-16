@@ -52,6 +52,24 @@ let matrix = grid.matrix() // 行 = 极差箱；列 = 均值箱
 
 只处理短数组可直接用 `@rain.extract(samples)`。每次 `push_chunk` 先校验整块；只要有一个无效值，该块不会被部分消费，可以修正后原位重试。`finish()` 在记录结束时结算残余部分，重复调用返回空数组；此后追加会得到 `ClosedCounter`。不同试验段、不同传感器不能共用同一条未结束的记录，否则段与段之间会被当作一次真实运动。
 
+### 合并多次独立试验的循环谱
+
+例如，两次试验分别从 0 加载到 4、从 100 加载到 104。每次试验各产生一个极差为 4 的半循环。把两个循环谱相加，就能汇总次数，也能避免把两场之间从 4 到 100 的跳变算成载荷变化。
+
+```moonbit
+let ranges = [0.0, 5.0]
+let means = [-5.0, 5.0, 105.0]
+let combined = @rain.Spectrum::new(ranges, means)
+for samples in [[0.0, 4.0], [100.0, 104.0]] {
+  let run = @rain.Spectrum::new(ranges, means)
+  for cycle in @rain.extract(samples) { run.add(cycle) }
+  combined.merge(run)
+}
+// combined.matrix() == [[1L, 1L]]，两个均值箱各有一个半循环。
+```
+
+`combined.merge(run)` 将各格和超界权重累加到 `combined`。两个谱的极差和均值分箱边界都须逐项相等。如果边界不匹配，或合并次数超过 Int64 上限，调用会报错并保留合并前的结果。
+
 ## 计数口径
 
 - 采用三点雨流法处理非周期记录。滤除单调段中的非转折点；连续相等值归入同一平台，下标取首次达到的位置（包括结尾平台）。空、单点、全常值输入没有循环，两点不同则有一个半循环。

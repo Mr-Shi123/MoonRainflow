@@ -34,6 +34,22 @@ Feed returned cycles to `Spectrum::new(range_edges, mean_edges).add(c)`. Both ax
 
 Counting is amortized O(n) in samples. The stream does not retain all measurements or settled cycles; the unresolved reversal stack can still grow to O(n). Binning takes O(log R + log M) time per record.
 
+### Combine independent test runs
+
+Count each run separately so the jump between runs cannot create a spurious cycle. If you already have one spectrum per run, `combined.merge(run)` adds its bins and outside weight to the combined spectrum. Both grids must use identical edges on both axes. Incompatible edges or an Int64 count overflow leave the accumulated result intact.
+
+```moonbit
+let ranges = [0.0, 5.0]
+let means = [-5.0, 5.0, 105.0]
+let combined = @rain.Spectrum::new(ranges, means)
+for samples in [[0.0, 4.0], [100.0, 104.0]] {
+  let run = @rain.Spectrum::new(ranges, means)
+  for cycle in @rain.extract(samples) { run.add(cycle) }
+  combined.merge(run)
+}
+// combined.matrix() == [[1L, 1L]]: one half cycle in each mean bin.
+```
+
 ## Verification and provenance
 
 ```sh

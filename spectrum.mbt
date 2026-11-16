@@ -86,6 +86,29 @@ pub fn Spectrum::add(self : Spectrum, c : Cycle) -> Unit raise RainError {
 }
 
 ///|
+/// Accumulate another spectrum with identical range and mean edges into this
+/// one. This combines counts from independent loading histories. Merging a
+/// spectrum with itself doubles its weights. On error all counts stay intact.
+pub fn Spectrum::merge(
+  self : Spectrum,
+  other : Spectrum,
+) -> Unit raise RainError {
+  guard self.ranges == other.ranges && self.means == other.means else {
+    raise InvalidEdges("merge requires identical range and mean edges")
+  }
+  // Every cell and the outside weight are nonnegative parts of the total.
+  // If the combined total fits, each individual sum fits as well.
+  guard self.total <= 9223372036854775807L - other.total else {
+    raise CountLimit
+  }
+  for i, units in other.cells {
+    self.cells[i] = self.cells[i] + units
+  }
+  self.outside += other.outside
+  self.total += other.total
+}
+
+///|
 /// Return an independent snapshot, indexed [range bin][mean bin].
 pub fn Spectrum::matrix(self : Spectrum) -> Array[Array[Int64]] {
   let width = self.means.length() - 1

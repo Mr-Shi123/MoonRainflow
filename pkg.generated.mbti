@@ -41,6 +41,7 @@ pub struct Spectrum {
 }
 pub fn Spectrum::add(Self, Cycle) -> Unit raise RainError
 pub fn Spectrum::matrix(Self) -> Array[Array[Int64]]
+pub fn Spectrum::merge(Self, Self) -> Unit raise RainError
 pub fn Spectrum::new(Array[Double], Array[Double]) -> Self raise RainError
 pub fn Spectrum::outside_units(Self) -> Int64
 pub fn Spectrum::total_units(Self) -> Int64

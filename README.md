@@ -34,6 +34,21 @@ Feed returned cycles to `Spectrum::new(range_edges, mean_edges).add(c)`. Both ax
 
 Counting is amortized O(n) in samples. The stream does not retain all measurements or settled cycles; the unresolved reversal stack can still grow to O(n). Binning takes O(log R + log M) time per record.
 
+### Get one-dimensional distributions
+
+Use `range_units()` or `mean_units()` to plot totals along one axis without copying the full matrix and summing it yourself:
+
+```moonbit
+let grid = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+for cycle in @rain.extract([-2.0, 1.0, -3.0, 5.0, -1.0, 3.0, -4.0, 4.0, -2.0]) {
+  grid.add(cycle)
+}
+let by_range = grid.range_units() // [1L, 6L]
+let by_mean = grid.mean_units()   // [2L, 5L]
+```
+
+Each result is an independent array in the corresponding bin order, in integer half-cycle units. Both summarize only the cells inside the two-dimensional grid: cycles outside **either** axis remain in `outside_units()`. The sum of either array plus `outside_units()` equals `total_units()`. Each call scans the grid in O(R × M) time and allocates only its result array, O(R) or O(M).
+
 ### Combine independent test runs
 
 Count each run separately so the jump between runs cannot create a spurious cycle. If you already have one spectrum per run, `combined.merge(run)` adds its bins and outside weight to the combined spectrum. Both grids must use identical edges on both axes. Incompatible edges or an Int64 count overflow leave the accumulated result intact.
@@ -60,6 +75,6 @@ moon build --target js --release cmd/bridge --deny-warn
 node --test scripts/cli.test.mjs
 ```
 
-Checks include the [MathWorks nine-reversal table](https://www.mathworks.com/help/signal/ref/rainflow.html), all 256 partitions of that input, all 3,280 ternary histories up to length seven (total variation, plateau anchors and endpoints), bin conservation and streaming CLI behavior. For an optional external check, install `rainflow==3.2.0` in an isolated Python environment, build the JS bridge, and run `python scripts/check_reference.py`. It compares 100 deterministic histories and 3,540 cycle records with [Python rainflow](https://github.com/iamlikeme/rainflow), including order and indices. Adjacent ties are tested separately because plateau index conventions differ.
+Checks include the [MathWorks nine-reversal table](https://www.mathworks.com/help/signal/ref/rainflow.html), all 256 partitions of that input, all 3,280 ternary histories up to length seven (total variation, plateau anchors and endpoints), bin conservation, one-dimensional distributions and their snapshot isolation, and streaming CLI behavior. For an optional external check, install `rainflow==3.2.0` in an isolated Python environment, build the JS bridge, and run `python scripts/check_reference.py`. It compares 100 deterministic histories and 3,540 cycle records with [Python rainflow](https://github.com/iamlikeme/rainflow), including order and indices. Adjacent ties are tested separately because plateau index conventions differ.
 
 Independent implementation of a published counting method, licensed under [Apache-2.0](LICENSE). Python rainflow (MIT) is an optional test oracle. No standards certification is claimed.

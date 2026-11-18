@@ -20,6 +20,8 @@ Matrix in half-cycle units (rows: range; columns: mean):
   [1, 0]
   [1, 5]
 Outside grid: 1 half-cycle unit(s)
+Range totals in half-cycle units: [1, 6]
+Mean totals in half-cycle units: [2, 5]
 ```
 
 矩阵内的 7 个半循环单位加上超界的 1 个，正好等于 4 个完整循环。该超界记录的极差为 9，而示例分箱只覆盖到 8。
@@ -51,6 +53,17 @@ let matrix = grid.matrix() // 行 = 极差箱；列 = 均值箱
 ```
 
 只处理短数组可直接用 `@rain.extract(samples)`。每次 `push_chunk` 先校验整块；只要有一个无效值，该块不会被部分消费，可以修正后原位重试。`finish()` 在记录结束时结算残余部分，重复调用返回空数组；此后追加会得到 `ClosedCounter`。不同试验段、不同传感器不能共用同一条未结束的记录，否则段与段之间会被当作一次真实运动。
+
+### 直接获取极差或均值分布
+
+绘制一维分布图时，可以直接按极差或均值汇总，不必先复制整张二维矩阵再自行求和。沿用上面的 `grid`：
+
+```moonbit
+let by_range = grid.range_units() // [1L, 6L]，各极差箱的半循环单位总数
+let by_mean = grid.mean_units()   // [2L, 5L]，各均值箱的半循环单位总数
+```
+
+数组顺序与相应轴的分箱顺序一致，除以 2 才是等效完整循环次数。两种汇总都只统计二维矩阵内的数据；**超出任一轴**的循环仍计入 `outside_units()`，不会混入汇总。因此，任一汇总数组之和加上超界权重都等于 `total_units()`。返回的是独立快照，修改数组或继续向谱中累加数据互不影响。每次调用扫描矩阵，耗时 O(R × M)，只分配长度为 R 或 M 的结果数组。
 
 ### 合并多次独立试验的循环谱
 
@@ -88,7 +101,7 @@ moon build --target js --release cmd/bridge --deny-warn
 node --test scripts/cli.test.mjs
 ```
 
-测试将 [MathWorks 公开算例](https://www.mathworks.com/help/signal/ref/rainflow.html)的 7 条循环逐字段比对，考察该序列全部 256 种切块方法，并穷举长度 0 到 7、取值 −1/0/1 的 3,280 条短序列，检查循环还原的总变差等于输入总变差。CLI 验收覆盖文件、管道、格式诊断以及输入关闭前就能收到已确定的循环。
+测试将 [MathWorks 公开算例](https://www.mathworks.com/help/signal/ref/rainflow.html)的 7 条循环逐字段比对，考察该序列全部 256 种切块方法，并穷举长度 0 到 7、取值 −1/0/1 的 3,280 条短序列，检查循环还原的总变差等于输入总变差。循环谱测试还覆盖一维汇总的计数、超界处理和快照独立性。CLI 验收覆盖文件、管道、格式诊断以及输入关闭前就能收到已确定的循环。
 
 另附独立对拍脚本：在独立 Python 环境执行 `python -m pip install rainflow==3.2.0`，构建 JS 桥后运行 `python scripts/check_reference.py`。它用固定输入及固定种子产生 100 条记录，将 CLI 返回的 3,540 条循环逐字段与 [Python rainflow](https://github.com/iamlikeme/rainflow) 对照。随机记录无相邻重复值，以避免不同平台下标约定产生假差异；平台段另在 MoonBit 测试覆盖。Python 仅用于这项验收。
 

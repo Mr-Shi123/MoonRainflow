@@ -27,6 +27,53 @@ test "full cycle outside both axes counted once, weight two" {
 }
 
 ///|
+test "marginals sum rectangular bins in half units and exclude outside weight" {
+  let s = @moonrainflow.Spectrum::new([0.0, 4.0, 8.0], [-2.0, 0.0, 1.0, 2.0])
+  for samples in [reference_input(), [10.0, 11.0], [10.0, 20.0]] {
+    for cycle in @moonrainflow.extract(samples) {
+      s.add(cycle)
+    }
+  }
+  // In-grid rows are [1, 0, 0] and [1, 1, 4]. The final column
+  // includes a full cycle (two half units), not just cycle records.
+  assert_true(s.range_units() == [1L, 6L])
+  assert_true(s.mean_units() == [2L, 1L, 4L])
+  assert_eq(s.outside_units(), 3L)
+  assert_eq(s.total_units(), 10L)
+}
+
+///|
+test "marginal snapshots stay independent when modified or the spectrum grows" {
+  let s = @moonrainflow.Spectrum::new([0.0, 4.0, 8.0], [-2.0, 0.0, 1.0, 2.0])
+  for cycle in @moonrainflow.extract(reference_input()) {
+    s.add(cycle)
+  }
+  let ranges = s.range_units()
+  let means = s.mean_units()
+  s.merge(s)
+  assert_true(ranges == [1L, 6L])
+  assert_true(means == [2L, 1L, 4L])
+  ranges[0] = 999L
+  means[0] = 999L
+  assert_true(s.range_units() == [2L, 12L])
+  assert_true(s.mean_units() == [4L, 2L, 8L])
+  assert_eq(s.total_units(), 16L)
+}
+
+///|
+test "marginals preserve empty bins on empty and fully outside spectra" {
+  let s = @moonrainflow.Spectrum::new([0.0, 1.0], [-1.0, 0.0, 1.0, 2.0])
+  assert_true(s.range_units() == [0L])
+  assert_true(s.mean_units() == [0L, 0L, 0L])
+  for cycle in @moonrainflow.extract(reference_input()) {
+    s.add(cycle)
+  }
+  assert_true(s.range_units() == [0L])
+  assert_true(s.mean_units() == [0L, 0L, 0L])
+  assert_eq(s.outside_units(), s.total_units())
+}
+
+///|
 test "merge aggregates separately counted histories and preserves the source" {
   let ranges = [0.0, 4.0, 8.0]
   let means = [-1.0, 0.0, 1.0]
@@ -77,6 +124,8 @@ test "self merge doubles weights and an overflowing merge is atomic" {
   let result = Ok(grid.merge(grid)) catch { e => Err(e) }
   assert_true(result is Err(@moonrainflow.CountLimit))
   assert_true(grid.matrix() == [[1L << 61]])
+  assert_true(grid.range_units() == [1L << 61])
+  assert_true(grid.mean_units() == [1L << 61])
   assert_eq(grid.outside_units(), 1L << 61)
   assert_eq(grid.total_units(), 1L << 62)
 }

@@ -25,6 +25,10 @@ fn demo() -> Unit raise @rain.RainError {
     println("  [\{row[0]}, \{row[1]}]")
   }
   println("Outside grid: \{spectrum.outside_units()} half-cycle unit(s)")
+  let ranges = spectrum.range_units()
+  let means = spectrum.mean_units()
+  println("Range totals in half-cycle units: [\{ranges[0]}, \{ranges[1]}]")
+  println("Mean totals in half-cycle units: [\{means[0]}, \{means[1]}]")
 }
 
 ///|

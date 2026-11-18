@@ -118,6 +118,36 @@ pub fn Spectrum::matrix(self : Spectrum) -> Array[Array[Int64]] {
 }
 
 ///|
+/// Sum the matrix across mean bins, in half-cycle units per range bin.
+/// Returns an independent snapshot in range-edge order. Cycles outside
+/// either axis are excluded, as in matrix(), and remain in outside_units().
+pub fn Spectrum::range_units(self : Spectrum) -> Array[Int64] {
+  let width = self.means.length() - 1
+  Array::makei(self.ranges.length() - 1, row => {
+    let mut units = 0L
+    for col in 0..<width {
+      units += self.cells[row * width + col]
+    }
+    units
+  })
+}
+
+///|
+/// Sum the matrix across range bins, in half-cycle units per mean bin.
+/// Returns an independent snapshot in mean-edge order. Cycles outside
+/// either axis are excluded, as in matrix(), and remain in outside_units().
+pub fn Spectrum::mean_units(self : Spectrum) -> Array[Int64] {
+  let width = self.means.length() - 1
+  let units = Array::make(width, 0L)
+  for row in 0..<(self.ranges.length() - 1) {
+    for col in 0..<width {
+      units[col] = units[col] + self.cells[row * width + col]
+    }
+  }
+  units
+}
+
+///|
 pub fn Spectrum::outside_units(self : Spectrum) -> Int64 {
   self.outside
 }

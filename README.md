@@ -24,6 +24,16 @@ node cmd/rainflow.mjs measurements.txt > cycles.csv
 
 Input is one decimal number per UTF-8 line, including scientific notation. Blank lines are ignored. With no path or with `-`, the CLI reads stdin. CSV columns are `start_index,end_index,range,mean,half_units`. The last field is 1 for a half cycle and 2 for a full cycle; range is the full peak-to-valley distance, not amplitude. A failing stream returns nonzero and reports the physical line for a bad sample; any rows already emitted remain in the output.
 
+### Export cycles above a minimum range
+
+```sh
+node cmd/rainflow.mjs --min-range 4 examples/mathworks-nine.txt > large-cycles.csv
+```
+
+`--min-range R` keeps cycles whose range is **greater than or equal to** R. The threshold is a finite, nonnegative decimal in the same units as the input; scientific notation and `--min-range=R` are also accepted. Place the option before or after the input path, or omit the path to filter stdin. The default is 0, which preserves the original output. In the example, six records remain: the range-3 half cycle is excluded, while both range-4 records are retained.
+
+All samples still enter the rainflow counter and undergo validation. Filtering selects the exported records after counting, preserving their original sample indices, means, weights and settlement order. Matching cycles are streamed as they become available. If none match, the output contains only the CSV header.
+
 ## Library
 
 See the [executable MoonBit example](cmd/demo/main.mbt) and [package import](cmd/demo/moon.pkg). For a batch, call `@rain.extract(samples)`. For streaming, use one `Counter::new()` per continuous signal, collect the arrays returned by every `push(value)` or `push_chunk(values)`, then append `finish()` once at the end. The chunk layout does not affect the results; finishing each chunk separately does. Invalid chunks are rejected atomically. A second finish returns no cycles; appending to a finished counter raises an error.

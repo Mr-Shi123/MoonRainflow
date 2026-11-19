@@ -34,6 +34,24 @@ node cmd/rainflow.mjs --min-range 4 examples/mathworks-nine.txt > large-cycles.c
 
 All samples still enter the rainflow counter and undergo validation. Filtering selects the exported records after counting, preserving their original sample indices, means, weights and settlement order. Matching cycles are streamed as they become available. If none match, the output contains only the CSV header.
 
+### Check processing totals
+
+Add `--summary` to print a summary to stderr after successful completion. It works with files or stdin and can appear before or after the path:
+
+```sh
+node cmd/rainflow.mjs --summary --min-range 4 examples/mathworks-nine.txt > cycles.csv
+```
+
+The CSV goes to `cycles.csv`, while the terminal shows:
+
+```text
+Samples: 9
+Counted cycles: 7 records; 4 equivalent cycles
+Exported cycles: 6 records; 3.5 equivalent cycles
+```
+
+`Samples` counts accepted measurements, excluding blank lines. `Counted cycles` includes all settled and final residual cycles before filtering; `Exported cycles` includes only records kept by `--min-range`. Record counts and equivalent cycles are distinct: a half-cycle record contributes 0.5 equivalent cycles. Totals use exact integer half-cycle units, including when the count exceeds JavaScript's safe integer range. CSV remains streamed to stdout. Failed runs report the error without a completed summary. Omit `--summary` for the original CSV-only behavior.
+
 ## Library
 
 See the [executable MoonBit example](cmd/demo/main.mbt) and [package import](cmd/demo/moon.pkg). For a batch, call `@rain.extract(samples)`. For streaming, use one `Counter::new()` per continuous signal, collect the arrays returned by every `push(value)` or `push_chunk(values)`, then append `finish()` once at the end. The chunk layout does not affect the results; finishing each chunk separately does. Invalid chunks are rejected atomically. A second finish returns no cycles; appending to a finished counter raises an error.

@@ -48,6 +48,24 @@ node cmd/rainflow.mjs --min-range 4 examples/mathworks-nine.txt > large-cycles.c
 
 全部采样点仍参与雨流计数和有效性检查，筛选发生在 CSV 输出阶段。保留下来的记录沿用原始采样下标、均值、权重和结算顺序，满足阈值的循环仍会及时流式输出。没有符合条件的循环时，输出只包含 CSV 表头。
 
+### 查看处理统计摘要
+
+添加 `--summary`，处理成功结束后会在终端显示摘要。文件输入和标准输入都支持，参数可放在文件名前后：
+
+```sh
+node cmd/rainflow.mjs --summary --min-range 4 examples/mathworks-nine.txt > cycles.csv
+```
+
+CSV 保存到 `cycles.csv`，终端显示：
+
+```text
+Samples: 9
+Counted cycles: 7 records; 4 equivalent cycles
+Exported cycles: 6 records; 3.5 equivalent cycles
+```
+
+`Samples` 是有效采样数，空行不计入；`Counted cycles` 是筛选前的全部循环，包含结束时结算的尾段；`Exported cycles` 是通过 `--min-range` 筛选后实际导出的循环。记录条数与等效循环次数分别显示：一个半循环记录贡献 0.5 次等效循环。内部以整数半循环单位精确累计，大计数也保留半循环精度。摘要写到标准错误流，CSV 仍通过标准输出流持续输出，可直接重定向保存。处理失败时只报告错误，不输出完成摘要；省略 `--summary` 时保持原有输出行为。
+
 ## 从 MoonBit 调用
 
 本仓库的 `cmd/demo/moon.pkg` 展示了如何把根包导入为 `@rain`。跨批次要复用同一个计数器；每收到一块就处理当时已经确定的循环。以下代码可放进允许抛出 `@rain.RainError` 的函数中：

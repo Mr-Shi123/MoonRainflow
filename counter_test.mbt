@@ -45,6 +45,70 @@ test "all 256 chunk layouts reproduce batch cycles in order" {
 }
 
 ///|
+test "finish previews match every prefix without changing subsequent counting" {
+  for
+    samples in [
+      reference_input(),
+      [],
+      [2.0],
+      [3.0, 3.0, 3.0],
+      [0.0, 1.0, 2.0, 3.0],
+      [2.0, 2.0, 5.0, 5.0, 5.0, 2.0, 2.0],
+      [0.0, 1.0, 0.0, 1.0, 0.0],
+      [0.0, 1.0e20, 1.0, 2.0e20],
+      [0.0, -1.0e20, -1.0, -2.0e20],
+    ] {
+    for split in 0..<(samples.length() + 1) {
+      let stream = @moonrainflow.Counter::new()
+      let settled = stream.push_chunk(samples[:split])
+      let preview : Array[@moonrainflow.Cycle] = stream.preview_finish()
+      let at_end = settled.copy()
+      at_end.append(preview)
+      assert_true(at_end == @moonrainflow.extract(samples[:split]))
+      assert_true(stream.preview_finish() == preview)
+      preview.clear()
+      settled.append(stream.push_chunk(samples[split:]))
+      settled.append(stream.finish())
+      assert_true(settled == @moonrainflow.extract(samples))
+    }
+  }
+}
+
+///|
+test "previewed halves can become a full cycle while the snapshot stays unchanged" {
+  let stream = @moonrainflow.Counter::new()
+  assert_eq(stream.push_chunk([0.0, 5.0, 1.0]).length(), 0)
+  let preview = stream.preview_finish()
+  assert_eq(preview.length(), 2)
+  assert_true(preview[0].start_index == 0L && preview[0].end_index == 1L)
+  assert_true(preview[0].range == 5.0 && preview[0].half_units == 1)
+  assert_true(preview[1].start_index == 1L && preview[1].end_index == 2L)
+  assert_true(preview[1].range == 4.0 && preview[1].half_units == 1)
+  let snapshot = preview.copy()
+  let completed = stream.push(6.0)
+  completed.append(stream.finish())
+  assert_eq(completed.length(), 2)
+  assert_true(completed[0].start_index == 1L && completed[0].end_index == 2L)
+  assert_true(completed[0].range == 4.0 && completed[0].half_units == 2)
+  assert_true(completed[1].start_index == 0L && completed[1].end_index == 3L)
+  assert_true(completed[1].range == 6.0 && completed[1].half_units == 1)
+  assert_true(preview == snapshot)
+}
+
+///|
+test "preview of a finished counter stays empty and does not reopen it" {
+  let stream = @moonrainflow.Counter::new()
+  assert_eq(stream.push_chunk([0.0, 1.0]).length(), 0)
+  assert_eq(stream.finish().length(), 1)
+  assert_eq(stream.preview_finish().length(), 0)
+  assert_eq(stream.preview_finish().length(), 0)
+  assert_true(
+    (Ok(stream.push(2.0)) catch { e => Err(e) })
+    is Err(@moonrainflow.ClosedCounter),
+  )
+}
+
+///|
 test "constant and short input, plateaus and equal excursions" {
   for a in [[], [2.0], [3.0, 3.0, 3.0]] {
     assert_eq(@moonrainflow.extract(a).length(), 0)

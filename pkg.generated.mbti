@@ -22,6 +22,7 @@ pub struct Counter {
 }
 pub fn Counter::finish(Self) -> Array[Cycle]
 pub fn Counter::new() -> Self
+pub fn Counter::preview_finish(Self) -> Array[Cycle]
 pub fn Counter::push(Self, Double) -> Array[Cycle] raise RainError
 pub fn Counter::push_chunk(Self, ArrayView[Double]) -> Array[Cycle] raise RainError
 

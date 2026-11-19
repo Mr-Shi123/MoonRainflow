@@ -185,6 +185,22 @@ pub fn Counter::finish(self : Counter) -> Array[Cycle] {
 }
 
 ///|
+/// Preview what finish would emit now, without changing or closing this counter.
+/// Previously emitted cycles are excluded. The result is an independent,
+/// provisional snapshot: later samples may change these cycles and their weights.
+/// Returns an empty array after finish. Time and space are O(pending reversals).
+pub fn Counter::preview_finish(self : Counter) -> Array[Cycle] {
+  let snapshot : Counter = {
+    stack: self.stack.copy(),
+    candidate: self.candidate,
+    trend: self.trend,
+    next_index: self.next_index,
+    closed: self.closed,
+  }
+  snapshot.finish()
+}
+
+///|
 /// Count an entire open-ended loading history, without periodic wrapping.
 pub fn extract(xs : ArrayView[Double]) -> Array[Cycle] raise RainError {
   let stream = Counter::new()

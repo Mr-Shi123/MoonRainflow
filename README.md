@@ -44,6 +44,21 @@ Feed returned cycles to `Spectrum::new(range_edges, mean_edges).add(c)`. Both ax
 
 Counting is amortized O(n) in samples. The stream does not retain all measurements or settled cycles; the unresolved reversal stack can still grow to O(n). Binning takes O(log R + log M) time per record.
 
+### Preview a live record without ending it
+
+`counter.preview_finish()` returns the cycles that `finish()` would emit at this moment, while leaving the counter open for further samples. Cycles already returned by `push` or `push_chunk` are excluded.
+
+```moonbit
+let counter = @rain.Counter::new()
+let confirmed = counter.push_chunk([0.0, 5.0, 1.0]) // No settled cycles yet.
+let provisional = counter.preview_finish() // Two half cycles: ranges 5 and 4.
+confirmed.append(counter.push(6.0))
+confirmed.append(counter.finish())
+// confirmed: a full cycle of range 4, then a half cycle of range 6.
+```
+
+For an "ends now" view, combine the previously confirmed cycles with the current preview. Replace the preview on each refresh; accumulate only the actual `push`, `push_chunk` and `finish` results into a permanent spectrum. Later samples can change the provisional cycles and their weights. The returned array is an independent snapshot; repeated previews do not consume samples or change subsequent counting. A preview after `finish()` is empty. Each call copies the pending reversal state, with time and extra memory proportional to the number of pending reversals.
+
 ### Get one-dimensional distributions
 
 Use `range_units()` or `mean_units()` to plot totals along one axis without copying the full matrix and summing it yourself:

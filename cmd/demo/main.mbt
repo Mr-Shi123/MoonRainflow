@@ -29,6 +29,15 @@ fn demo() -> Unit raise @rain.RainError {
   let means = spectrum.mean_units()
   println("Range totals in half-cycle units: [\{ranges[0]}, \{ranges[1]}]")
   println("Mean totals in half-cycle units: [\{means[0]}, \{means[1]}]")
+  let live = @rain.Counter::new()
+  let confirmed = live.push_chunk([0.0, 5.0, 1.0])
+  let preview = live.preview_finish()
+  println("Live preview [0, 5, 1]: \{preview.length()} provisional half cycles")
+  confirmed.append(live.push(6.0))
+  confirmed.append(live.finish())
+  println(
+    "After appending 6: range=\{confirmed[0].range} cycles=\{confirmed[0].half_units.to_double() / 2.0}; range=\{confirmed[1].range} cycles=\{confirmed[1].half_units.to_double() / 2.0}",
+  )
 }
 
 ///|

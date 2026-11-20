@@ -108,15 +108,49 @@ for samples in [[0.0, 4.0], [100.0, 104.0]] {
 // combined.matrix() == [[1L, 1L]]: one half cycle in each mean bin.
 ```
 
+### Summarize cycles in MoonBit
+
+`CycleSummary` accumulates record counts, half/full-cycle counts, exact half units, and observed range/mean bounds without retaining the cycle records. `add_chunk` and `merge` reject Int64 overflow before changing any statistics. `snapshot()` returns immutable totals; empty summaries have absent bounds. Equivalent cycle counts are formatted exactly, including `.5`, without conversion to floating point.
+
+```moonbit
+let summary = @rain.CycleSummary::new()
+summary.add_chunk(@rain.extract([-2.0, 1.0, -3.0, 5.0, -1.0, 3.0, -4.0, 4.0, -2.0]))
+let totals = summary.snapshot()
+// records = 7, half_records = 6, full_records = 1, half_units = 8
+println(totals.equivalent_cycles()) // 4
+println(totals.to_csv())
+```
+
+The summary CSV contains one header and one totals row. Empty bounds are blank fields. `summary.merge(other)` supports separately counted test runs; self-merging doubles counts.
+
+### Coarsen and export a spectrum
+
+`grid.coarsen(range_edges, mean_edges)` aggregates adjacent bins into a new independent spectrum. Both outer endpoints must stay unchanged, and every new boundary must exactly match an existing boundary. This permits exact aggregation without guessing how cycles are distributed inside a bin. Refinement, shifted boundaries and cropped grids are rejected. Outside weight remains outside and total weight is conserved.
+
+```moonbit
+let fine = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+for cycle in @rain.extract([-2.0, 1.0, -3.0, 5.0, -1.0, 3.0, -4.0, 4.0, -2.0]) {
+  fine.add(cycle)
+}
+let coarse = fine.coarsen([0.0, 8.0], [-1.0, 1.0])
+// coarse.matrix() == [[7L]], outside_units() == 1L, total_units() == 8L
+println(coarse.to_csv())
+```
+
+`range_edges()` and `mean_edges()` return copied axis boundaries. `rows()` returns an independent row-major array of `SpectrumCell` values with bin indices, lower/upper bounds and half units. `to_csv()` exports those same cells, including zero-count bins, with columns `range_index,mean_index,range_lower,range_upper,mean_lower,mean_upper,half_units`. The last bin includes the final upper edge; other bins exclude their upper edge. Outside weight is available separately through `outside_units()` and is not included in the CSV cells. Export scans the grid and materializes the report in memory.
+
 ## Verification and provenance
 
 ```sh
+node scripts/check_source_size.mjs
 moon fmt --check
 moon test --target wasm-gc --deny-warn
 moon test --target js --deny-warn
 moon build --target js --release cmd/bridge --deny-warn
 node --test scripts/cli.test.mjs
 ```
+
+The source-size check lists MoonBit files and their physical/code line counts. Its 500-line core-library gate excludes tests, commands/examples, generated interfaces, build output, blank lines and lines beginning with `//`. It uses physical code lines, including delimiters, rather than an AST statement count. CI runs the same reproducible check.
 
 Checks include the [MathWorks nine-reversal table](https://www.mathworks.com/help/signal/ref/rainflow.html), all 256 partitions of that input, all 3,280 ternary histories up to length seven (total variation, plateau anchors and endpoints), bin conservation, one-dimensional distributions and their snapshot isolation, and streaming CLI behavior. For an optional external check, install `rainflow==3.2.0` in an isolated Python environment, build the JS bridge, and run `python scripts/check_reference.py`. It compares 100 deterministic histories and 3,540 cycle records with [Python rainflow](https://github.com/iamlikeme/rainflow), including order and indices. Adjacent ties are tested separately because plateau index conventions differ.
 

@@ -37,17 +37,54 @@ pub struct Cycle {
 pub fn Cycle::equal(Self, Self) -> Bool
 pub fn Cycle::not_equal(Self, Self) -> Bool
 
+pub struct CycleSummary {
+  // private fields
+}
+pub fn CycleSummary::add(Self, Cycle) -> Unit raise RainError
+pub fn CycleSummary::add_chunk(Self, ArrayView[Cycle]) -> Unit raise RainError
+pub fn CycleSummary::merge(Self, Self) -> Unit raise RainError
+pub fn CycleSummary::new() -> Self
+pub fn CycleSummary::snapshot(Self) -> CycleTotals
+
+pub struct CycleTotals {
+  records : Int64
+  half_records : Int64
+  full_records : Int64
+  half_units : Int64
+  min_range : Double?
+  max_range : Double?
+  min_mean : Double?
+  max_mean : Double?
+}
+pub fn CycleTotals::equivalent_cycles(Self) -> String
+pub fn CycleTotals::to_csv(Self) -> String
+
 pub struct Spectrum {
   // private fields
 }
 pub fn Spectrum::add(Self, Cycle) -> Unit raise RainError
+pub fn Spectrum::coarsen(Self, Array[Double], Array[Double]) -> Self raise RainError
 pub fn Spectrum::matrix(Self) -> Array[Array[Int64]]
+pub fn Spectrum::mean_edges(Self) -> Array[Double]
 pub fn Spectrum::mean_units(Self) -> Array[Int64]
 pub fn Spectrum::merge(Self, Self) -> Unit raise RainError
 pub fn Spectrum::new(Array[Double], Array[Double]) -> Self raise RainError
 pub fn Spectrum::outside_units(Self) -> Int64
+pub fn Spectrum::range_edges(Self) -> Array[Double]
 pub fn Spectrum::range_units(Self) -> Array[Int64]
+pub fn Spectrum::rows(Self) -> Array[SpectrumCell]
+pub fn Spectrum::to_csv(Self) -> String
 pub fn Spectrum::total_units(Self) -> Int64
+
+pub struct SpectrumCell {
+  range_index : Int32
+  mean_index : Int32
+  range_lower : Double
+  range_upper : Double
+  mean_lower : Double
+  mean_upper : Double
+  half_units : Int64
+}
 
 // Type aliases
 

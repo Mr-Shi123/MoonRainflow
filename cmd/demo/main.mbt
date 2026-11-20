@@ -2,8 +2,10 @@
 fn demo() -> Unit raise @rain.RainError {
   let counter = @rain.Counter::new()
   let spectrum = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+  let summary = @rain.CycleSummary::new()
   let mut records = 0
   fn consume(rows : Array[@rain.Cycle]) -> Unit raise @rain.RainError {
+    summary.add_chunk(rows)
     for c in rows {
       records += 1
       spectrum.add(c)
@@ -29,6 +31,13 @@ fn demo() -> Unit raise @rain.RainError {
   let means = spectrum.mean_units()
   println("Range totals in half-cycle units: [\{ranges[0]}, \{ranges[1]}]")
   println("Mean totals in half-cycle units: [\{means[0]}, \{means[1]}]")
+  println("Cycle summary CSV:")
+  println(summary.snapshot().to_csv())
+  let coarse = spectrum.coarsen([0.0, 8.0], [-1.0, 1.0])
+  println(
+    "Coarsened spectrum CSV (outside: \{coarse.outside_units()} half unit):",
+  )
+  println(coarse.to_csv())
   let live = @rain.Counter::new()
   let confirmed = live.push_chunk([0.0, 5.0, 1.0])
   let preview = live.preview_finish()

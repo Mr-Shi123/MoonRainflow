@@ -126,6 +126,37 @@ for samples in [[0.0, 4.0], [100.0, 104.0]] {
 
 `combined.merge(run)` 将各格和超界权重累加到 `combined`。两个谱的极差和均值分箱边界都须逐项相等。如果边界不匹配，或合并次数超过 Int64 上限，调用会报错并保留合并前的结果。
 
+### 在 MoonBit 中生成循环统计报告
+
+`CycleSummary` 可增量统计记录数、半循环与整循环条数、半循环单位总数，以及实际出现的极差和均值范围，无须保存全部循环明细。`add_chunk` 和 `merge` 会在溢出前检查整批数据，报错时保留已有统计。`snapshot()` 返回不可变统计快照；空统计的极差和均值边界为 `None`。等效循环次数使用整数精确格式化，可保留大计数中的半次权重。
+
+```moonbit
+let summary = @rain.CycleSummary::new()
+summary.add_chunk(@rain.extract([-2.0, 1.0, -3.0, 5.0, -1.0, 3.0, -4.0, 4.0, -2.0]))
+let totals = summary.snapshot()
+// 7 条记录，6 个半循环、1 个整循环，共 8 个半循环单位。
+println(totals.equivalent_cycles()) // 4
+println(totals.to_csv())
+```
+
+统计 CSV 包含表头和一行汇总，空统计的边界字段留空。多次试验分别计数后，可通过 `summary.merge(other)` 汇总；与自身合并会将次数加倍。
+
+### 将循环谱合并为较粗的分箱并导出
+
+`grid.coarsen(range_edges, mean_edges)` 将相邻分箱精确汇总为一个新的循环谱。两轴的最外侧边界须保持不变，新边界必须逐项来自原边界；细化分箱、移动边界或裁剪范围都会被拒绝。这样可以保持统计准确，不需要估计一个原始分箱内部的数据分布。超界权重继续单独保留，总权重守恒。
+
+```moonbit
+let fine = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+for cycle in @rain.extract([-2.0, 1.0, -3.0, 5.0, -1.0, 3.0, -4.0, 4.0, -2.0]) {
+  fine.add(cycle)
+}
+let coarse = fine.coarsen([0.0, 8.0], [-1.0, 1.0])
+// 矩阵为 [[7L]]，超界权重为 1L，总权重为 8L。
+println(coarse.to_csv())
+```
+
+`range_edges()`、`mean_edges()` 返回边界副本；`rows()` 返回按“极差行、均值列”排列的独立单元格快照，包含分箱下标、上下界和半循环单位数。`to_csv()` 导出这些单元格，包含次数为零的分箱，列为 `range_index,mean_index,range_lower,range_upper,mean_lower,mean_upper,half_units`。仅最后一箱包含上界，其他箱不包含上界。超界权重通过 `outside_units()` 单独读取，不混入单元格 CSV。导出会遍历矩阵并在内存中生成报告。
+
 ## 计数口径
 
 - 采用三点雨流法处理非周期记录。滤除单调段中的非转折点；连续相等值归入同一平台，下标取首次达到的位置（包括结尾平台）。空、单点、全常值输入没有循环，两点不同则有一个半循环。
@@ -137,12 +168,15 @@ for samples in [[0.0, 4.0], [100.0, 104.0]] {
 ## 怎样验证
 
 ```sh
+node scripts/check_source_size.mjs
 moon fmt --check
 moon test --target wasm-gc --deny-warn
 moon test --target js --deny-warn
 moon build --target js --release cmd/bridge --deny-warn
 node --test scripts/cli.test.mjs
 ```
+
+源码统计脚本逐文件列出 MoonBit 总行数和代码行数。核心库的 500 行检查排除了测试、命令行与示例、生成接口、构建产物、空行及以 `//` 开头的注释行；统计的是含括号等分隔符的物理代码行，并非语法树语句数。CI 使用同一检查，统计口径可直接复现。
 
 测试将 [MathWorks 公开算例](https://www.mathworks.com/help/signal/ref/rainflow.html)的 7 条循环逐字段比对，考察该序列全部 256 种切块方法，并穷举长度 0 到 7、取值 −1/0/1 的 3,280 条短序列，检查循环还原的总变差等于输入总变差。循环谱测试还覆盖一维汇总的计数、超界处理和快照独立性。CLI 验收覆盖文件、管道、格式诊断以及输入关闭前就能收到已确定的循环。
 

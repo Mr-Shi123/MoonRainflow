@@ -1,8 +1,82 @@
 # MoonRainflow
 
-[English](README.md) · [公共接口](pkg.generated.mbti)
+[English](README.md) · [Mooncakes](https://mooncakes.io/docs/Mr-Shi123/moonrainflow) · [公共接口](pkg.generated.mbti)
 
 一段台架载荷记录里，缓慢的大幅波动中可能嵌着几次快速的小幅往复。MoonRainflow 从原始读数中找出这些循环，给出**极差、均值、权重和原始采样下标**，再按极差和均值统计循环谱。核心由 MoonBit 编写，无第三方运行依赖。适用于单通道测量数据的离线复核或连续采集。
+
+## 安装环境并运行源码
+
+先安装 [Git](https://git-scm.com/downloads)，再按 [MoonBit 官方安装指南](https://www.moonbitlang.com/download/)选择 Windows、macOS 或 Linux 的安装方式。安装后重新打开终端，使 `moon` 命令加入 `PATH`。本文示例使用 **moonc 0.10.19** 验证，请使用该版本或兼容的新版本。检查安装结果：
+
+```sh
+git --version
+moon version --all
+```
+
+MoonBit 库和 Wasm GC 示例只需要 Git 与 MoonBit 工具链。文件／管道命令行工具及 JavaScript 检查还需要 [Node.js](https://nodejs.org/en/download) **22.12 或更高版本**（已测 24.19），安装后执行 `node --version` 检查。Python 仅用于文末的可选参考对照；本项目不需要执行 `npm install`。
+
+获取源码并运行内置示例：
+
+```sh
+git clone https://github.com/Mr-Shi123/MoonRainflow.git
+cd MoonRainflow
+moon run cmd/demo --target wasm-gc
+```
+
+## 在自己的 MoonBit 项目中安装
+
+包名为 [Mr-Shi123/moonrainflow](https://mooncakes.io/docs/Mr-Shi123/moonrainflow)，版本为 **0.2.0**。在另一个目录创建项目并添加公开依赖，下载不需要登录 Mooncakes：
+
+```sh
+moon new rainflow-example
+cd rainflow-example
+moon add Mr-Shi123/moonrainflow
+```
+
+`moon add` 会将依赖写入 `moon.mod`。如需明确复现本次版本，在该文件的 `import` 块中使用 `"Mr-Shi123/moonrainflow@0.2.0"`。将 `cmd/main/moon.pkg` 替换为：
+
+```moonbit
+import {
+  "Mr-Shi123/moonrainflow" @rain,
+}
+
+pkgtype(kind: "executable")
+```
+
+将 `cmd/main/main.mbt` 替换为以下完整代码：
+
+```moonbit
+///|
+fn example() -> Unit raise @rain.RainError {
+  let cycles = @rain.extract([0.0, 4.0, 0.0])
+  let grid = @rain.Spectrum::new([0.0, 4.0], [0.0, 4.0])
+  grid.add_chunk(cycles)
+  println("Cycle records: \{cycles.length()}")
+  println("Half-cycle units: \{grid.total_units()}")
+}
+
+///|
+fn main {
+  example() catch {
+    e => abort("invalid example: \{e}")
+  }
+}
+```
+
+在这个新项目的根目录运行：
+
+```sh
+moon run cmd/main --target wasm-gc
+```
+
+预期输出：
+
+```text
+Cycle records: 2
+Half-cycle units: 2
+```
+
+两条半循环记录合计为一个等效完整循环。下文的仓库运行和测试命令均在克隆得到的 `MoonRainflow` 根目录执行，而非这个依赖使用示例目录。
 
 ## 一分钟复现
 

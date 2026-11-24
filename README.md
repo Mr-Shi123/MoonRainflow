@@ -1,10 +1,86 @@
 # MoonRainflow
 
-[中文说明](README.zh-CN.md) · [API](pkg.generated.mbti)
+[中文说明](README.zh-CN.md) · [Mooncakes](https://mooncakes.io/docs/Mr-Shi123/moonrainflow) · [API](pkg.generated.mbti)
 
 MoonRainflow counts rainflow cycles in a single load history. It reports the range, mean, weight and original endpoints of each excursion, and can accumulate a range-by-mean spectrum as samples arrive. The library is MoonBit with no third-party runtime dependencies; the file/pipe CLI calls the same compiled library.
 
+## Install and run from source
+
+Install [Git](https://git-scm.com/downloads), then follow the [official MoonBit installation instructions](https://www.moonbitlang.com/download/) for Windows, macOS or Linux. Restart your terminal after installation so `moon` is on `PATH`. The examples are verified with **moonc 0.10.19**; use that version or a compatible newer toolchain. Check your installation with:
+
+```sh
+git --version
+moon version --all
+```
+
+The MoonBit library and Wasm GC demo need only Git and the MoonBit toolchain. To use the file/pipe CLI or run the JavaScript checks, also install [Node.js](https://nodejs.org/en/download) **22.12 or newer** (verified with 24.19), then check `node --version`. Python is needed only for the optional reference comparison described below. No `npm install` is required.
+
+Clone the source and run the bundled example:
+
+```sh
+git clone https://github.com/Mr-Shi123/MoonRainflow.git
+cd MoonRainflow
+moon run cmd/demo --target wasm-gc
+```
+
+## Install as a MoonBit dependency
+
+The module is [Mr-Shi123/moonrainflow](https://mooncakes.io/docs/Mr-Shi123/moonrainflow), version **0.2.0**. In a separate directory, create a project and add the public package; downloading it does not require a Mooncakes login:
+
+```sh
+moon new rainflow-example
+cd rainflow-example
+moon add Mr-Shi123/moonrainflow
+```
+
+`moon add` records the dependency in `moon.mod`. To reproduce this release explicitly, use `"Mr-Shi123/moonrainflow@0.2.0"` in that file's `import` block. Replace `cmd/main/moon.pkg` with:
+
+```moonbit
+import {
+  "Mr-Shi123/moonrainflow" @rain,
+}
+
+pkgtype(kind: "executable")
+```
+
+Replace `cmd/main/main.mbt` with this complete example:
+
+```moonbit
+///|
+fn example() -> Unit raise @rain.RainError {
+  let cycles = @rain.extract([0.0, 4.0, 0.0])
+  let grid = @rain.Spectrum::new([0.0, 4.0], [0.0, 4.0])
+  grid.add_chunk(cycles)
+  println("Cycle records: \{cycles.length()}")
+  println("Half-cycle units: \{grid.total_units()}")
+}
+
+///|
+fn main {
+  example() catch {
+    e => abort("invalid example: \{e}")
+  }
+}
+```
+
+Run it from the new project's root:
+
+```sh
+moon run cmd/main --target wasm-gc
+```
+
+Expected output:
+
+```text
+Cycle records: 2
+Half-cycle units: 2
+```
+
+The two half-cycle records together represent one equivalent full cycle. The remaining repository commands below run from the cloned `MoonRainflow` directory, not this consumer project.
+
 ## Replay a published example
+
+From the cloned repository's root:
 
 ```sh
 moon run cmd/demo --target wasm-gc

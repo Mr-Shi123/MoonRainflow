@@ -74,13 +74,15 @@ Exported cycles: 6 records; 3.5 equivalent cycles
 let counter = @rain.Counter::new()
 let grid = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
 for block in [[-2.0, 1.0, -3.0], [5.0, -1.0], [3.0, -4.0, 4.0, -2.0]] {
-  for c in counter.push_chunk(block) { grid.add(c) }
+  grid.add_chunk(counter.push_chunk(block))
 }
-for c in counter.finish() { grid.add(c) }
+grid.add_chunk(counter.finish())
 let matrix = grid.matrix() // 行 = 极差箱；列 = 均值箱
 ```
 
 只处理短数组可直接用 `@rain.extract(samples)`。每次 `push_chunk` 先校验整块；只要有一个无效值，该块不会被部分消费，可以修正后原位重试。`finish()` 在记录结束时结算残余部分，重复调用返回空数组；此后追加会得到 `ClosedCounter`。不同试验段、不同传感器不能共用同一条未结束的记录，否则段与段之间会被当作一次真实运动。
+
+`Spectrum::add_chunk(cycles)` 支持整批循环或数组切片的原子加入。它先检查整批权重，若发生 `CountLimit`，矩阵、超界权重和总计数都保持原样；空批次即使在 Int64 计数上限也能提交。处理只需常量额外空间，无须复制整个矩阵。原子性针对这次循环谱操作；此前计数器已经处理过的采样不会回退，需要重试分箱时应保留计数器返回的循环数组。
 
 ### 在采集过程中预览当前结果
 

@@ -60,6 +60,17 @@ Indices are zero-based Int64 sample indices. Flat runs use the first occurrence,
 
 Feed returned cycles to `Spectrum::new(range_edges, mean_edges).add(c)`. Both axes must be finite and strictly increasing, range edges nonnegative. Each bin includes its lower edge; only the last also includes its upper edge. A cycle outside either axis contributes just once to `outside_units()`. `matrix()` returns an independent snapshot in half-cycle units, indexed by range then mean. Its sum plus outside units equals `total_units()`. The grid limit is one million cells.
 
+Use `grid.add_chunk(cycles)` to add an entire returned batch or array slice atomically:
+
+```moonbit
+let counter = @rain.Counter::new()
+let grid = @rain.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+grid.add_chunk(counter.push_chunk([-2.0, 1.0, -3.0, 5.0]))
+grid.add_chunk(counter.finish())
+```
+
+The spectrum checks the full batch weight before modifying its cells. If it raises `CountLimit`, its matrix, outside weight and total remain unchanged. Empty batches are accepted even at the Int64 limit. The method uses constant extra space and does not copy the matrix. Atomicity covers this spectrum operation; an earlier call to the counter has already consumed its input, so keep the returned cycles if you need to retry binning.
+
 Counting is amortized O(n) in samples. The stream does not retain all measurements or settled cycles; the unresolved reversal stack can still grow to O(n). Binning takes O(log R + log M) time per record.
 
 ### Preview a live record without ending it

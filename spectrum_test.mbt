@@ -27,6 +27,58 @@ test "full cycle outside both axes counted once, weight two" {
 }
 
 ///|
+test "spectrum chunks preserve binning and weights across every cycle split" {
+  let cycles = @moonrainflow.extract(reference_input())
+  let original = cycles.copy()
+  for split in 0..<(cycles.length() + 1) {
+    let s = @moonrainflow.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+    s.add(@moonrainflow.extract([0.0, 2.0])[0])
+    s.add_chunk(cycles[:split])
+    s.add_chunk(cycles[split:])
+    assert_true(s.matrix() == [[1L, 1L], [1L, 5L]])
+    assert_true(s.range_units() == [2L, 6L])
+    assert_true(s.mean_units() == [2L, 6L])
+    assert_eq(s.outside_units(), 1L)
+    assert_eq(s.total_units(), 9L)
+    assert_true(cycles == original)
+  }
+}
+
+///|
+test "late chunk overflow preserves cells and outside counts and allows retry" {
+  let s = @moonrainflow.Spectrum::new([0.0, 4.0, 8.0], [-1.0, 0.0, 1.0])
+  let seed = @moonrainflow.extract([-1.0, 0.0])[0]
+  for _ in 0..<61 {
+    s.merge(s)
+    s.add(seed)
+  }
+  s.merge(s)
+  s.merge(s)
+  let limit = 9223372036854775807L
+  assert_eq(s.total_units(), limit - 3L)
+  let outside = @moonrainflow.extract([10.0, 20.0])[0]
+  let inside = @moonrainflow.extract([0.0, 2.0])[0]
+  let full = @moonrainflow.extract(reference_input())[2]
+  // The first batch has only three records, but weighs five half units.
+  for batch in [[outside, full, full], [inside, inside, outside, outside]] {
+    let result = Ok(s.add_chunk(batch)) catch { e => Err(e) }
+    assert_true(result is Err(@moonrainflow.CountLimit))
+    assert_true(s.matrix() == [[limit - 3L, 0L], [0L, 0L]])
+    assert_eq(s.outside_units(), 0L)
+    assert_eq(s.total_units(), limit - 3L)
+  }
+  s.add_chunk([full, inside])
+  s.add_chunk([])
+  assert_true(s.matrix() == [[limit - 3L, 1L], [0L, 2L]])
+  assert_eq(s.total_units(), limit)
+  let result = Ok(s.add_chunk([outside])) catch { e => Err(e) }
+  assert_true(result is Err(@moonrainflow.CountLimit))
+  assert_true(s.matrix() == [[limit - 3L, 1L], [0L, 2L]])
+  assert_eq(s.outside_units(), 0L)
+  assert_eq(s.total_units(), limit)
+}
+
+///|
 test "marginals sum rectangular bins in half units and exclude outside weight" {
   let s = @moonrainflow.Spectrum::new([0.0, 4.0, 8.0], [-2.0, 0.0, 1.0, 2.0])
   for samples in [reference_input(), [10.0, 11.0], [10.0, 20.0]] {

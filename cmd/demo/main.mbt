@@ -6,9 +6,9 @@ fn demo() -> Unit raise @rain.RainError {
   let mut records = 0
   fn consume(rows : Array[@rain.Cycle]) -> Unit raise @rain.RainError {
     summary.add_chunk(rows)
+    spectrum.add_chunk(rows)
     for c in rows {
       records += 1
-      spectrum.add(c)
       println(
         "  samples \{c.start_index}..\{c.end_index}: range=\{c.range} mean=\{c.mean} cycles=\{c.half_units.to_double() / 2.0}",
       )

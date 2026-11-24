@@ -86,6 +86,27 @@ pub fn Spectrum::add(self : Spectrum, c : Cycle) -> Unit raise RainError {
 }
 
 ///|
+/// Add a batch of emitted cycles atomically, using constant extra space.
+/// CountLimit leaves all cells, outside weight and total unchanged. Empty
+/// batches are allowed, including when the total is already at its limit.
+pub fn Spectrum::add_chunk(
+  self : Spectrum,
+  cycles : ArrayView[Cycle],
+) -> Unit raise RainError {
+  let mut total = self.total
+  for cycle in cycles {
+    let units = cycle.half_units.to_int64()
+    guard total <= 9223372036854775807L - units else { raise CountLimit }
+    total += units
+  }
+  // The entire weight fits. Each nonnegative partial sum must fit too,
+  // so the existing per-cycle addition cannot overflow during this pass.
+  for cycle in cycles {
+    self.add(cycle)
+  }
+}
+
+///|
 /// Accumulate another spectrum with identical range and mean edges into this
 /// one. This combines counts from independent loading histories. Merging a
 /// spectrum with itself doubles its weights. On error all counts stay intact.

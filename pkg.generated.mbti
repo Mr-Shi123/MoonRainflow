@@ -63,6 +63,7 @@ pub struct Spectrum {
   // private fields
 }
 pub fn Spectrum::add(Self, Cycle) -> Unit raise RainError
+pub fn Spectrum::add_chunk(Self, ArrayView[Cycle]) -> Unit raise RainError
 pub fn Spectrum::coarsen(Self, Array[Double], Array[Double]) -> Self raise RainError
 pub fn Spectrum::matrix(Self) -> Array[Array[Int64]]
 pub fn Spectrum::mean_edges(Self) -> Array[Double]

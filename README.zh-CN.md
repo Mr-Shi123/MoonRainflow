@@ -6,7 +6,7 @@
 
 ## 安装环境并运行源码
 
-先安装 [Git](https://git-scm.com/downloads)，再按 [MoonBit 官方安装指南](https://www.moonbitlang.com/download/)选择 Windows、macOS 或 Linux 的安装方式。安装后重新打开终端，使 `moon` 命令加入 `PATH`。本文示例使用 **moonc 0.10.19** 验证，请使用该版本或兼容的新版本。检查安装结果：
+先安装 [Git](https://git-scm.com/downloads)，再按 [MoonBit 官方安装指南](https://www.moonbitlang.com/download/)选择 Windows、macOS 或 Linux 的安装方式。安装后重新打开终端，使 `moon` 命令加入 `PATH`。本文示例使用 **moonc 1.0.0-rc1** 验证，请使用该版本或兼容的新版本。检查安装结果：
 
 ```sh
 git --version
@@ -80,7 +80,7 @@ Half-cycle units: 2
 
 ## 一分钟复现
 
-在本项目根目录打开终端，使用 MoonBit 工具链（本机验证：`moonc v0.10.19`）运行：
+在本项目根目录打开终端，使用 MoonBit 工具链（本机验证：`moonc 1.0.0-rc1`）运行：
 
 ```sh
 moon run cmd/demo --target wasm-gc

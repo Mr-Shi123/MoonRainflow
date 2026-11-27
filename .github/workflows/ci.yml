@@ -9,10 +9,12 @@ jobs:
         with:
           node-version: '24'
       - name: Install MoonBit
+        id: toolchain
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
-      - name: Check and run the library
+          echo "moonc=$("$HOME/.moon/bin/moonc" -v)" >> "$GITHUB_OUTPUT"
+      - name: Check and run the library (moonc ${{ steps.toolchain.outputs.moonc }})
         run: |
           node scripts/check_source_size.mjs
           moon version --all

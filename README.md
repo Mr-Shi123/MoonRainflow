@@ -6,7 +6,7 @@ MoonRainflow counts rainflow cycles in a single load history. It reports the ran
 
 ## Install and run from source
 
-Install [Git](https://git-scm.com/downloads), then follow the [official MoonBit installation instructions](https://www.moonbitlang.com/download/) for Windows, macOS or Linux. Restart your terminal after installation so `moon` is on `PATH`. The examples are verified with **moonc 0.10.19**; use that version or a compatible newer toolchain. Check your installation with:
+Install [Git](https://git-scm.com/downloads), then follow the [official MoonBit installation instructions](https://www.moonbitlang.com/download/) for Windows, macOS or Linux. Restart your terminal after installation so `moon` is on `PATH`. The examples are verified with **moonc 1.0.0-rc1**; use that version or a compatible newer toolchain. Check your installation with:
 
 ```sh
 git --version
@@ -90,7 +90,7 @@ Nine reversals arrive in three blocks. Samples 4 and 5 enclose a full cycle from
 
 ## Process a file
 
-From this directory, with MoonBit (tested with moonc 0.10.19) and Node 22.12+:
+From this directory, with MoonBit (tested with moonc 1.0.0-rc1) and Node 22.12+:
 
 ```sh
 moon build --target js --release cmd/bridge
